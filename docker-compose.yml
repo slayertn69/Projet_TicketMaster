@@ -37,7 +37,6 @@ services:
       - "8088:8080"
     networks: [bigdata]
 
-  # HDFS (images amd64 -> on force la plateforme sur Mac M1/M2)
   hdfs-namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     platform: linux/amd64
@@ -70,7 +69,7 @@ services:
       - SPARK_MODE=master
     ports:
       - "7077:7077"
-      - "8080:8080"
+      - "8080:8080" # UI Spark Master
     volumes:
       - ./exports:/mnt/exports
     networks: [bigdata]
@@ -85,62 +84,12 @@ services:
       - SPARK_WORKER_CORES=2
       - SPARK_WORKER_MEMORY=2G
     ports:
-      - "8081:8081"
+      - "8081:8081" # UI Spark Worker
     volumes:
       - ./exports:/mnt/exports
     networks: [bigdata]
 
-  airflow-postgres:
-    image: postgres:16
-    container_name: airflow-postgres
-    environment:
-      - POSTGRES_USER=${AIRFLOW_DB_USER}
-      - POSTGRES_PASSWORD=${AIRFLOW_DB_PASSWORD}
-      - POSTGRES_DB=${AIRFLOW_DB_NAME}
-    volumes:
-      - ./data/postgres-airflow:/var/lib/postgresql/data
-    networks: [bigdata]
-
-  # One-shot : init/migrate DB + création admin (tout en UNE seule ligne)
-  airflow-init:
-    image: ${AIRFLOW_IMAGE_NAME}
-    container_name: airflow-init
-    depends_on: [airflow-postgres]
-    environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
-      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
-      - AIRFLOW_UID=50000
-    volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
-    entrypoint: /bin/bash
-    command: >
-      -c "airflow db migrate &&
-          airflow users create --username admin --firstname Admin --lastname User --role Admin --email admin@example.com --password admin || true"
-    networks: [bigdata]
-
-  # Webserver + Scheduler (DB déjà initialisée)
-  airflow:
-    image: ${AIRFLOW_IMAGE_NAME}
-    container_name: airflow
-    depends_on: [airflow-postgres]
-    environment:
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://${AIRFLOW_DB_USER}:${AIRFLOW_DB_PASSWORD}@airflow-postgres:5432/${AIRFLOW_DB_NAME}
-      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
-      - AIRFLOW__WEBSERVER__SECRET_KEY=${AIRFLOW_SECRET_KEY}
-      - AIRFLOW__CORE__FERNET_KEY=${AIRFLOW_FERNET_KEY}
-      - AIRFLOW_UID=50000
-    volumes:
-      - ./airflow/dags:/opt/airflow/dags
-      - ./airflow/logs:/opt/airflow/logs
-      - ./airflow/plugins:/opt/airflow/plugins
-    entrypoint: /bin/bash
-    command: -c "airflow webserver & airflow scheduler"
-    ports:
-      - "8089:8080"
-    networks: [bigdata]
-
 networks:
   bigdata:
-    driver: bridge
+    external: true
+    name: bigdata
