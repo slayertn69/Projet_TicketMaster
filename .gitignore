@@ -1,0 +1,43 @@
+# --- OS & éditeurs ---
+.DS_Store
+**/.DS_Store
+._*
+Thumbs.db
+.vscode/
+.idea/
+*.iml
+
+# --- Python / PySpark ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+.venv/
+venv/
+pytest_cache/
+.ipynb_checkpoints/
+
+# --- Airflow ---
+airflow/logs/
+airflow/plugins/__pycache__/
+# tu gardes les DAGs (airflow/dags) sous version, donc on n’ignore pas ce dossier
+
+# --- Docker / secrets ---
+.env
+.env.*      # ex: .env.local
+# (option) si tu crées un .dockerignore, mets-y aussi node_modules, logs, exports, etc.
+
+# --- Données locales (ne pas versionner) ---
+data/
+exports/            # fichiers pour Power BI (Parquet/CSV)
+checkpoints/        # checkpoints Spark si tu les places ici
+spark-events/       # event logs Spark si tu les actives
+
+# --- Logs & artefacts divers ---
+*.log
+*.log.*
+*.pid
+*.tmp
+tmp/
