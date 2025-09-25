@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Parties Lichess</title>
+
+    <!-- CSS global existant -->
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='styles.css') }}"
+    />
+
+    <!-- Overrides d'apparence (plein écran + fond clair lisible) -->
+    <style>
+      /* Fond image + léger voile */
+      body {
+        background-image: linear-gradient(
+            rgba(0, 0, 0, 0.45),
+            rgba(0, 0, 0, 0.45)
+          ),
+          url('{{ url_for("static", filename="bg.jpg") }}');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        background-repeat: no-repeat;
+      }
+
+      /* Étendre la page : plus de max-width */
+      .container {
+        max-width: none !important;
+        width: 100%;
+        padding: 24px 24px;
+      }
+
+      /* Panneau clair qui couvre toute la largeur pour lisibilité */
+      .content {
+        background: rgba(255, 255, 255, 0.88);
+        color: #111;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        border-radius: 14px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+      }
+
+      h1 {
+        color: #111;
+        margin: 0 0 14px 0;
+      }
+
+      /* Contrôles */
+      .controls {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 16px;
+        flex-wrap: wrap;
+      }
+      .select,
+      .search {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: #fff;
+        color: #111;
+        min-width: 260px;
+      }
+      .btn {
+        padding: 10px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.15);
+        background: #111;
+        color: #fff;
+        cursor: pointer;
+      }
+      .btn:hover {
+        filter: brightness(1.08);
+      }
+
+      /* Résumé sélection */
+      .card {
+        background: rgba(255, 255, 255, 0.95);
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+        padding: 12px;
+        margin: 12px 0;
+        color: #111;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 8px;
+      }
+      .muted {
+        opacity: 0.75;
+      }
+
+      /* Tableau clair, pleine largeur */
+      table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        background: #fff;
+        color: #111;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+      }
+      th,
+      td {
+        padding: 12px 14px;
+        text-align: left;
+        border-bottom: 1px solid #eee;
+      }
+      th {
+        background: #f3f4f6;
+        font-weight: 600;
+        color: #111;
+      }
+      tbody tr:hover {
+        background: #f9fafb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="content">
+        <h1>Parties Lichess</h1>
+
+        <!-- Contrôles -->
+        <div class="controls">
+          <select id="gameSelect" class="select">
+            <option value="">— choisir une partie —</option>
+            {% for g in games %}
+            <option value="{{ g.get('game_id') }}">
+              {{ g.get('game_id') }}
+            </option>
+            {% endfor %}
+          </select>
+
+          <input
+            id="gameSearch"
+            class="search"
+            type="text"
+            placeholder="Rechercher un Game ID…"
+          />
+          <button id="searchBtn" class="btn">Rechercher</button>
+        </div>
+
+        <!-- Résultat sélection/recherche -->
+        <div id="resultPanel" class="card" style="display: none">
+          <div class="kv">
+            <div class="muted">Game ID</div>
+            <div id="r_game"></div>
+            <div class="muted">Blanc</div>
+            <div id="r_white"></div>
+            <div class="muted">Noir</div>
+            <div id="r_black"></div>
+            <div class="muted">Status</div>
+            <div id="r_status"></div>
+            <div class="muted">Vainqueur</div>
+            <div id="r_winner"></div>
+            <div class="muted">Durée</div>
+            <div id="r_duration"></div>
+          </div>
+        </div>
+
+        <!-- Tableau complet -->
+        <table>
+          <thead>
+            <tr>
+              <th>Game ID</th>
+              <th>Blanc</th>
+              <th>Noir</th>
+              {% if games and 'ptal_move' in games[0] %}
+              <th>Coups</th>
+              {% endif %} {% if games and 'status' in games[0] %}
+              <th>Status</th>
+              {% endif %}
+              <th>Vainqueur</th>
+              {% if games and 'duration' in games[0] %}
+              <th>Durée</th>
+              {% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for g in games %}
+            <tr>
+              <td>{{ g.get('game_id') }}</td>
+              <td>{{ g.get('white_player') }}</td>
+              <td>{{ g.get('black_player') }}</td>
+              {% if 'ptal_move' in g %}
+              <td>{{ g.get('ptal_move') }}</td>
+              {% endif %} {% if 'status' in g %}
+              <td>{{ g.get('status') }}</td>
+              {% endif %}
+              <td>{{ g.get('winner_pretty') }}</td>
+              {% if 'duration' in g %}
+              <td>{{ g.get('duration') or '—' }}</td>
+              {% endif %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Données -> JS -->
+    <script>
+      const GAMES = {{ games | tojson | safe }};
+
+      const sel = document.getElementById('gameSelect');
+      const input = document.getElementById('gameSearch');
+      const btn = document.getElementById('searchBtn');
+
+      function show(game){
+        const panel = document.getElementById('resultPanel');
+        if(!game){ panel.style.display='none'; return; }
+        document.getElementById('r_game').textContent     = game.game_id ?? '—';
+        document.getElementById('r_white').textContent    = game.white_player ?? '—';
+        document.getElementById('r_black').textContent    = game.black_player ?? '—';
+        document.getElementById('r_status').textContent   = game.status ?? '—';
+        document.getElementById('r_winner').textContent   = game.winner_pretty ?? '—';
+        document.getElementById('r_duration').textContent = game.duration ?? '—';
+        panel.style.display = 'block';
+      }
+
+      function findById(id){
+        if(!id) return null;
+        id = String(id).trim().toLowerCase();
+        return GAMES.find(g => String(g.game_id).toLowerCase() === id)
+            || GAMES.find(g => String(g.game_id).toLowerCase().startsWith(id));
+      }
+
+      sel.addEventListener('change', e => {
+        const id = e.target.value;
+        input.value = id;
+        show(findById(id));
+      });
+
+      function doSearch(){ show(findById(input.value)); }
+      btn.addEventListener('click', doSearch);
+      input.addEventListener('keydown', e => { if(e.key === 'Enter'){ doSearch(); } });
+    </script>
+  </body>
+</html>
